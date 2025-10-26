@@ -61,20 +61,24 @@ def take_screenshot(name):
 
 def scroll_feed():
     """
-    Scroll down the Instagram feed
+    Scroll down the Instagram feed using multiple scroll attempts
     """
-    start_pos = config.COORDINATES['scroll_start']
-    end_pos = config.COORDINATES['scroll_end']
-    duration = config.TIMING['scroll_duration']
+    feed_center = config.COORDINATES['feed_center']
 
     log_message("Scrolling feed...")
 
-    # Move to start position
-    pyautogui.moveTo(start_pos)
+    # Move mouse to feed center (but don't click to avoid opening post)
+    pyautogui.moveTo(feed_center)
+    time.sleep(0.3)
 
-    # Drag upward (to scroll content down)
-    drag_distance = end_pos[1] - start_pos[1]
-    pyautogui.drag(0, drag_distance, duration=duration, button='left')
+    # Try multiple scroll events to ensure it registers
+    # Negative values = scroll down
+    scroll_amount = config.AUTOMATION['scroll_amount']
+    scroll_attempts = config.AUTOMATION['scroll_attempts']
+    
+    for _ in range(scroll_attempts):
+        pyautogui.scroll(scroll_amount)
+        time.sleep(0.1)
 
     # Wait for content to load
     time.sleep(config.TIMING['wait_after_scroll'])
@@ -125,7 +129,7 @@ def open_post():
 
 def close_post():
     """
-    Close the post view and return to feed using Escape key
+    Close the post view and return to feed by clicking back button
 
     Returns:
         bool: True if successful, False otherwise
@@ -136,8 +140,9 @@ def close_post():
         try:
             log_message(f"Closing post view... (attempt {attempt}/{max_retries})")
 
-            # Use pyautogui.press('escape') to close post view
-            pyautogui.press('escape')
+            # Click the back button to close post view
+            back_button = config.COORDINATES['back_button']
+            pyautogui.click(back_button)
 
             # Wait for feed to reappear
             time.sleep(config.TIMING['wait_after_close_post'])
@@ -174,11 +179,11 @@ def run_automation_cycle(run_number, total_runs):
     Execute one complete scroll-and-like cycle
     
     Workflow:
-    1. Scroll feed down
-    2. Click to open post
-    3. Like the post
-    4. Take screenshot
-    5. Close post and return to feed
+    1. Click to open post
+    2. Like the post
+    3. Take screenshot
+    4. Close post and return to feed
+    5. Scroll feed down to next post
 
     Args:
         run_number: Current run number (1-indexed)
@@ -192,24 +197,28 @@ def run_automation_cycle(run_number, total_runs):
         log_message(f"Run {run_number}/{total_runs}", level="INFO")
         log_message("=" * 50)
 
-        # 1. Scroll feed to reveal new posts
-        scroll_feed()
-
-        # 2. Open the post
+        # 1. Open the post
         if not open_post():
             log_message("Failed to open post, continuing to next cycle", level="WARNING")
             return False
 
-        # 3. Like the post
+        # 2. Like the post
         like_post()
 
-        # 4. Take screenshot for verification
+        # 3. Take screenshot for verification
         take_screenshot(f"run_{run_number}_liked")
 
-        # 5. Close post and return to feed
+        # 4. Close post and return to feed
         if not close_post():
             log_message("Failed to close post, continuing to next cycle", level="WARNING")
             return False
+
+        # Extra wait to ensure we're back in feed view
+        log_message("Waiting for feed view to stabilize...")
+        time.sleep(1.0)
+
+        # 5. Scroll feed down to next post (after closing)
+        scroll_feed()
 
         # 6. Wait before next cycle
         time.sleep(config.TIMING['wait_between_runs'])
