@@ -1,26 +1,26 @@
 """
 Configuration file for Instagram automation
-Modify these coordinates based on your screen setup
+Modify these coordinates regularly
 """
 
 # iPhone Mirroring window coordinates
-# You need to find these using find_coordinates.py
+# Find them using find_coordinates.py
 COORDINATES = {
     # Center of the Instagram feed
-    'feed_center': (1044, 529),
+    'feed_center': (1033, 530),
 
     # Scroll positions (start and end points)
     'scroll_start': (1035, 643),
     'scroll_end': (1029, 163),
 
     # Like button (or use double-click on feed_center)
-    'like_button': (1179, 443),
+    'like_button': (1173, 475),
 
     # Comment button
-    'comment_button': (1179, 499),
+    'comment_button': (1173, 531),
     
     # Back button (to close post view)
-    'back_button': (888, 137),  # UPDATE THIS: Run find_coordinates.py to get the actual position
+    'back_button': (881, 167),
 }
 
 # Timing settings (in seconds)
@@ -36,7 +36,7 @@ TIMING = {
 
 # Automation settings
 AUTOMATION = {
-    'number_of_runs': 10,  # How many times to repeat
+    'number_of_runs': 5,  # How many times to repeat
     'enable_screenshots': True,  # Save screenshots for verification
     'enable_failsafe': True,  # Move mouse to corner to stop
     'scroll_amount': -500,  # Scroll amount per attempt (negative = down, adjust as needed)
