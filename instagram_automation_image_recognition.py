@@ -1,6 +1,6 @@
 """
-Instagram Automation Script
-Automates scrolling and liking on Instagram through iPhone Mirroring
+Instagram Automation Script with Image Recognition
+Automates scrolling and liking on Instagram using image recognition instead of fixed coordinates
 """
 import pyautogui
 import time
@@ -12,9 +12,12 @@ import config
 pyautogui.PAUSE = config.TIMING['pause_between_actions']
 pyautogui.FAILSAFE = config.AUTOMATION['enable_failsafe']
 
-# Create screenshots directory
+# Create directories
 SCREENSHOT_DIR = Path("screenshots")
 SCREENSHOT_DIR.mkdir(exist_ok=True)
+
+REFERENCE_DIR = Path("reference_images")
+REFERENCE_DIR.mkdir(exist_ok=True)
 
 
 def log_message(message, level="INFO"):
@@ -59,31 +62,100 @@ def take_screenshot(name):
     return filename
 
 
+def find_and_click(image_name, confidence=0.8, description="element"):
+    """
+    Find an image on screen and click it
+
+    Args:
+        image_name: Name of the reference image file
+        confidence: Matching confidence (0.0 to 1.0)
+        description: Description for logging
+
+    Returns:
+        bool: True if found and clicked, False otherwise
+    """
+    try:
+        image_path = REFERENCE_DIR / image_name
+        
+        if not image_path.exists():
+            log_message(f"Reference image not found: {image_path}", level="ERROR")
+            return False
+
+        log_message(f"Looking for {description}...")
+        location = pyautogui.locateCenterOnScreen(str(image_path), confidence=confidence)
+        
+        if location:
+            log_message(f"Found {description} at {location}")
+            pyautogui.click(location)
+            return True
+        else:
+            log_message(f"Could not find {description}", level="WARNING")
+            return False
+            
+    except Exception as e:
+        log_message(f"Error finding {description}: {e}", level="ERROR")
+        return False
+
+
+def find_element(image_name, confidence=0.8, description="element"):
+    """
+    Find an image on screen and return its location
+
+    Args:
+        image_name: Name of the reference image file
+        confidence: Matching confidence (0.0 to 1.0)
+        description: Description for logging
+
+    Returns:
+        tuple: (x, y) coordinates if found, None otherwise
+    """
+    try:
+        image_path = REFERENCE_DIR / image_name
+        
+        if not image_path.exists():
+            log_message(f"Reference image not found: {image_path}", level="ERROR")
+            return None
+
+        log_message(f"Looking for {description}...")
+        location = pyautogui.locateCenterOnScreen(str(image_path), confidence=confidence)
+        
+        if location:
+            log_message(f"Found {description} at {location}")
+            return location
+        else:
+            log_message(f"Could not find {description}", level="WARNING")
+            return None
+            
+    except Exception as e:
+        log_message(f"Error finding {description}: {e}", level="ERROR")
+        return None
+
+
 def scroll_feed():
     """
-    Scroll down the Instagram feed using randomized scroll amounts
-    Handles variable post sizes (reels, ads, regular posts)
+    Scroll down the Instagram feed using mouse wheel emulation
     """
-    import random
+    # Find the feed area
+    feed_location = find_element('feed_area.png', confidence=0.7, description="feed area")
     
-    feed_center = config.COORDINATES['feed_center']
+    if not feed_location:
+        # Fallback to center of screen if feed not found
+        log_message("Using fallback scroll position", level="WARNING")
+        feed_location = (pyautogui.size()[0] // 2, pyautogui.size()[1] // 2)
 
     log_message("Scrolling feed...")
 
-    # Move mouse to feed center (but don't click to avoid opening post)
-    pyautogui.moveTo(feed_center)
+    # Move mouse to feed area
+    pyautogui.moveTo(feed_location)
     time.sleep(0.3)
 
-    # Use randomized scroll amounts to handle variable post sizes
-    # This makes it less predictable and more human-like
-    scroll_amount = config.AUTOMATION['scroll_amount']
-    scroll_attempts = config.AUTOMATION['scroll_attempts']
+    # Scroll down
+    scroll_amount = config.AUTOMATION.get('scroll_amount', -500)
+    scroll_attempts = config.AUTOMATION.get('scroll_attempts', 5)
     
     for _ in range(scroll_attempts):
-        # Add ±20% randomness to scroll amount
-        random_scroll = int(scroll_amount * random.uniform(0.8, 1.2))
-        pyautogui.scroll(random_scroll)
-        time.sleep(random.uniform(0.1, 0.2))
+        pyautogui.scroll(scroll_amount)
+        time.sleep(0.1)
 
     # Wait for content to load
     time.sleep(config.TIMING['wait_after_scroll'])
@@ -93,15 +165,22 @@ def like_post():
     """
     Like the current post (double-click method)
     """
-    feed_center = config.COORDINATES['feed_center']
+    # Try image recognition first
+    post_center = find_element('post_center.png', confidence=0.7, description="post center")
+    
+    if not post_center:
+        # Fallback to configured coordinates
+        log_message("Using fallback coordinates for liking", level="WARNING")
+        post_center = config.COORDINATES.get('feed_center', (pyautogui.size()[0] // 2, pyautogui.size()[1] // 2))
 
     log_message("Liking post...")
 
-    # Double-click to like (Instagram feature)
-    pyautogui.doubleClick(feed_center)
+    # Double-click to like
+    pyautogui.doubleClick(post_center)
 
     # Wait for animation
     time.sleep(config.TIMING['wait_after_like'])
+    return True
 
 
 def open_post():
@@ -112,22 +191,19 @@ def open_post():
         bool: True if successful, False otherwise
     """
     try:
-        # Read feed_center coordinates from config
-        feed_center = config.COORDINATES['feed_center']
-
         log_message("Opening post...")
 
-        # Click on feed center to open post
-        pyautogui.click(feed_center)
-
-        # Wait for post view to load
-        time.sleep(config.TIMING['wait_after_open_post'])
-
-        log_message("Post opened successfully", level="SUCCESS")
-        return True
+        # Find and click on a post
+        if find_and_click('post_thumbnail.png', confidence=0.7, description="post"):
+            # Wait for post view to load
+            time.sleep(config.TIMING['wait_after_open_post'])
+            log_message("Post opened successfully", level="SUCCESS")
+            return True
+        else:
+            log_message("Failed to find post to open", level="ERROR")
+            return False
 
     except Exception as e:
-        # Log error if post fails to open
         log_message(f"Failed to open post: {e}", level="ERROR")
         return False
 
@@ -145,38 +221,36 @@ def close_post():
         try:
             log_message(f"Closing post view... (attempt {attempt}/{max_retries})")
 
-            # Click the back button to close post view
-            back_button = config.COORDINATES['back_button']
-            pyautogui.click(back_button)
-
-            # Wait for feed to reappear
-            time.sleep(config.TIMING['wait_after_close_post'])
-
-            log_message("Post closed successfully", level="SUCCESS")
-            return True
+            # Try image recognition first
+            if find_and_click('back_button.png', confidence=0.8, description="back button"):
+                # Wait for feed to reappear
+                time.sleep(config.TIMING['wait_after_close_post'])
+                log_message("Post closed successfully", level="SUCCESS")
+                return True
+            else:
+                # Fallback to configured coordinates
+                log_message(f"Using fallback coordinates for back button (attempt {attempt})", level="WARNING")
+                back_button = config.COORDINATES.get('back_button')
+                if back_button:
+                    pyautogui.click(back_button)
+                    time.sleep(config.TIMING['wait_after_close_post'])
+                    log_message("Post closed successfully (fallback)", level="SUCCESS")
+                    return True
+                
+                if attempt == max_retries:
+                    return False
+                
+                time.sleep(0.5)
 
         except Exception as e:
-            # Log error if post fails to close
             log_message(f"Failed to close post (attempt {attempt}): {e}", level="ERROR")
             
-            # If this was the last attempt, return False
             if attempt == max_retries:
-                log_message("Post failed to close after all retries", level="ERROR")
                 return False
             
-            # Wait a bit before retrying
             time.sleep(0.5)
     
     return False
-
-
-def activate_window():
-    """
-    Click on iPhone Mirroring window to ensure it's active
-    """
-    feed_center = config.COORDINATES['feed_center']
-    pyautogui.click(feed_center)
-    time.sleep(0.3)
 
 
 def run_automation_cycle(run_number, total_runs):
@@ -208,7 +282,8 @@ def run_automation_cycle(run_number, total_runs):
             return False
 
         # 2. Like the post
-        like_post()
+        if not like_post():
+            log_message("Failed to like post", level="WARNING")
 
         # 3. Take screenshot for verification
         take_screenshot(f"run_{run_number}_liked")
@@ -243,10 +318,11 @@ def main():
     num_runs = config.AUTOMATION['number_of_runs']
 
     print("\n" + "=" * 60)
-    print(" " * 15 + "INSTAGRAM AUTOMATION")
+    print(" " * 10 + "INSTAGRAM AUTOMATION (Image Recognition)")
     print("=" * 60)
     log_message(f"Starting automation with {num_runs} runs")
     log_message("Make sure iPhone Mirroring window is visible!")
+    log_message("Reference images should be in: reference_images/")
     log_message("Starting in 5 seconds...")
     print()
 

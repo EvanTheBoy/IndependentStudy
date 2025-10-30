@@ -36,7 +36,7 @@ TIMING = {
 
 # Automation settings
 AUTOMATION = {
-    'number_of_runs': 5,  # How many times to repeat
+    'number_of_runs': 3,  # How many times to repeat
     'enable_screenshots': True,  # Save screenshots for verification
     'enable_failsafe': True,  # Move mouse to corner to stop
     'scroll_amount': -500,  # Scroll amount per attempt (negative = down, adjust as needed)
