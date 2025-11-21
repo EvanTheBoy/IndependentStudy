@@ -23,6 +23,28 @@ COORDINATES = {
     'back_button': (881, 167),
 }
 
+# Pixel matching settings
+PIXEL_MATCHING = {
+    'confidence': 0.7,  # Matching confidence (0.0 to 1.0)
+    'search_region': None,  # Search entire screen - simpler and more reliable
+    'timeout': 3.0,  # Max seconds to search for element
+    'grayscale': False,  # Use color matching for better accuracy
+    'like_button_images': ['like_button.png', 'like_button_dark.png'],  # Try light theme first, then dark
+    'comment_button_images': ['comment_button.png', 'comment_button_dark.png'],  # Try light theme first, then dark
+}
+
+# Comment settings for Script B
+COMMENTS = {
+    'comment_texts': [
+        'Great post! 🔥',
+        'Love this! ❤️',
+        'Amazing! 👏',
+        'Nice! 😊',
+    ],
+    'use_random': True,  # Randomly select from comment_texts
+    'default_comment': 'Nice! 😊',
+}
+
 # Timing settings (in seconds)
 TIMING = {
     'pause_between_actions': 0.5,  # Pause between each action
@@ -32,6 +54,9 @@ TIMING = {
     'wait_after_open_post': 1.5,  # Wait for post view to load
     'wait_after_close_post': 2.0,  # Wait for feed to reappear
     'wait_between_runs': 1,  # Wait between automation runs
+    'wait_after_comment_click': 1.0,  # Wait for comment dialog to open
+    'wait_after_comment_submit': 1.5,  # Wait for comment to post
+    'wait_after_dialog_close': 1.0,  # Wait for dialog to close
 }
 
 # Automation settings
@@ -41,4 +66,6 @@ AUTOMATION = {
     'enable_failsafe': True,  # Move mouse to corner to stop
     'scroll_amount': -500,  # Scroll amount per attempt (negative = down, adjust as needed)
     'scroll_attempts': 5,  # Number of scroll attempts
+    'main_feed_scroll_amount': -300,  # Smaller scroll for main feed
+    'main_feed_scroll_attempts': 3,  # Number of scroll attempts for main feed
 }
