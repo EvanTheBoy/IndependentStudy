@@ -11,7 +11,7 @@ import config
 from utils import log_message, take_screenshot, setup_directories
 
 
-def find_comment_button(confidence=0.8, region=None):
+def find_comment_button(confidence=0.8, region=None, grayscale=False):
     """
     Find the comment button using pixel matching
     
@@ -20,6 +20,7 @@ def find_comment_button(confidence=0.8, region=None):
     Args:
         confidence: Matching confidence threshold (0.0 to 1.0)
         region: Optional search region (left, top, width, height)
+        grayscale: Use grayscale matching for speed
         
     Returns:
         tuple: (x, y) coordinates if found, None otherwise
@@ -30,16 +31,27 @@ def find_comment_button(confidence=0.8, region=None):
         if not image_path.exists():
             log_message(f"Reference image not found: {image_path}", level="WARNING")
             continue
+        
+        log_message(f"Trying to find comment button using: {image_name}")
             
         try:
-            location = pyautogui.locateCenterOnScreen(
+            location = pyautogui.locateOnScreen(
                 str(image_path),
                 confidence=confidence,
-                region=region
+                region=region,
+                grayscale=grayscale
             )
             
             if location:
-                return location
+                # Click on left-center of the matched region for better accuracy
+                left, top, width, height = location
+                click_x = left + int(width * 0.25)
+                click_y = top + int(height * 0.5)
+                click_point = (click_x, click_y)
+                
+                log_message(f"✓ Found comment button with {image_name} at region {location}", level="SUCCESS")
+                log_message(f"Will click at adjusted position: {click_point}")
+                return click_point
         except Exception as e:
             log_message(f"Error searching for {image_name}: {e}", level="WARNING")
             
@@ -69,12 +81,9 @@ def scroll_main_feed():
     """
     log_message("Scrolling main feed...")
     
-    # Use feed center from config for more reliable scrolling
-    feed_center = config.COORDINATES['feed_center']
-    
-    # Move to feed center
-    pyautogui.moveTo(feed_center)
-    time.sleep(0.3)
+    # Get current mouse position (should be on Instagram after previous action)
+    current_pos = pyautogui.position()
+    log_message(f"Scrolling at current position: {current_pos}")
     
     # Perform scroll with randomization for more natural behavior
     scroll_amount = config.AUTOMATION['main_feed_scroll_amount']
@@ -95,7 +104,7 @@ def comment_on_post_in_feed():
     Comment on a post in the main feed
     
     Workflow:
-    1. Find and click comment button
+    1. Find and click comment button using pixel matching
     2. Wait for comment dialog
     3. Type comment text
     4. Submit comment
@@ -104,36 +113,97 @@ def comment_on_post_in_feed():
     Returns:
         bool: True if successful, False otherwise
     """
-    log_message("Searching for comment button...")
+    log_message("Commenting on post...")
     
-    # 1. Find comment button
+    # 1. Find comment button using pixel matching
     button_location = find_comment_button(
         confidence=config.PIXEL_MATCHING['confidence'],
-        region=config.PIXEL_MATCHING['search_region']
+        region=config.PIXEL_MATCHING['search_region'],
+        grayscale=config.PIXEL_MATCHING['grayscale']
     )
     
-    if not button_location:
-        log_message("Comment button not found", level="WARNING")
-        return False
-    
-    log_message(f"Found comment button at {button_location}")
+    if button_location:
+        log_message(f"✓ Found comment button with pixel matching at {button_location}", level="SUCCESS")
+    else:
+        log_message("Pixel matching failed, using static coordinates", level="WARNING")
+        button_location = config.COORDINATES['comment_button']
     
     # 2. Click comment button
+    log_message(f"Clicking comment button at {button_location}")
     pyautogui.click(button_location)
     time.sleep(config.TIMING['wait_after_comment_click'])
     
-    # 3. Type comment text
+    # 3. Find and click the comment input field
+    log_message("Finding comment input field...")
+    input_img = Path('reference_images/comment_input.png')
+    
+    if input_img.exists():
+        try:
+            input_location = pyautogui.locateOnScreen(
+                str(input_img),
+                confidence=0.7,
+                grayscale=False
+            )
+            
+            if input_location:
+                input_center = pyautogui.center(input_location)
+                log_message(f"✓ Found input field at {input_center}")
+                pyautogui.click(input_center)
+                time.sleep(0.5)
+            else:
+                log_message("Input field not found, trying Tab key", level="WARNING")
+                pyautogui.press('tab')
+                time.sleep(0.3)
+        except Exception as e:
+            log_message(f"Error finding input field: {e}", level="WARNING")
+            pyautogui.press('tab')
+            time.sleep(0.3)
+    else:
+        log_message("comment_input.png not found, using Tab key", level="WARNING")
+        pyautogui.press('tab')
+        time.sleep(0.3)
+    
+    # 4. Type comment text
     comment_text = get_comment_text()
-    log_message(f"Typing comment: {comment_text}")
+    log_message(f"Typing comment: '{comment_text}'")
     pyautogui.write(comment_text, interval=0.05)
     
-    # 4. Submit comment (press Enter)
-    time.sleep(0.3)
-    pyautogui.press('enter')
-    time.sleep(config.TIMING['wait_after_comment_submit'])
+    # 5. Find and click the submit button (arrow)
+    time.sleep(0.5)
+    log_message("Finding submit button...")
+    submit_img = Path('reference_images/comment_submit.png')
     
-    # 5. Close comment dialog (press Escape)
-    pyautogui.press('escape')
+    if submit_img.exists():
+        try:
+            submit_location = pyautogui.locateOnScreen(
+                str(submit_img),
+                confidence=0.7,
+                grayscale=False
+            )
+            
+            if submit_location:
+                submit_center = pyautogui.center(submit_location)
+                log_message(f"✓ Found submit button at {submit_center}")
+                pyautogui.click(submit_center)
+                time.sleep(config.TIMING['wait_after_comment_submit'])
+            else:
+                log_message("Submit button not found, trying Enter key", level="WARNING")
+                pyautogui.press('enter')
+                time.sleep(config.TIMING['wait_after_comment_submit'])
+        except Exception as e:
+            log_message(f"Error finding submit button: {e}", level="WARNING")
+            pyautogui.press('enter')
+            time.sleep(config.TIMING['wait_after_comment_submit'])
+    else:
+        log_message("comment_submit.png not found, using Enter key", level="WARNING")
+        pyautogui.press('enter')
+        time.sleep(config.TIMING['wait_after_comment_submit'])
+    
+    # 6. Close comment dialog by clicking outside (click above the dialog)
+    log_message("Closing comment dialog...")
+    close_x = button_location[0]
+    close_y = button_location[1] - 200  # Click above the comment area to close
+    pyautogui.click(close_x, close_y)
     time.sleep(config.TIMING['wait_after_dialog_close'])
     
     log_message("Comment posted successfully", level="SUCCESS")
@@ -254,3 +324,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
