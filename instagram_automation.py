@@ -61,8 +61,11 @@ def take_screenshot(name):
 
 def scroll_feed():
     """
-    Scroll down the Instagram feed using multiple scroll attempts
+    Scroll down the Instagram feed using randomized scroll amounts
+    Handles variable post sizes (reels, ads, regular posts)
     """
+    import random
+    
     feed_center = config.COORDINATES['feed_center']
 
     log_message("Scrolling feed...")
@@ -71,14 +74,16 @@ def scroll_feed():
     pyautogui.moveTo(feed_center)
     time.sleep(0.3)
 
-    # Try multiple scroll events to ensure it registers
-    # Negative values = scroll down
+    # Use randomized scroll amounts to handle variable post sizes
+    # This makes it less predictable and more human-like
     scroll_amount = config.AUTOMATION['scroll_amount']
     scroll_attempts = config.AUTOMATION['scroll_attempts']
     
     for _ in range(scroll_attempts):
-        pyautogui.scroll(scroll_amount)
-        time.sleep(0.1)
+        # Add ±20% randomness to scroll amount
+        random_scroll = int(scroll_amount * random.uniform(0.8, 1.2))
+        pyautogui.scroll(random_scroll)
+        time.sleep(random.uniform(0.1, 0.2))
 
     # Wait for content to load
     time.sleep(config.TIMING['wait_after_scroll'])
