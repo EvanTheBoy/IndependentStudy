@@ -29,8 +29,8 @@ PIXEL_MATCHING = {
     'search_region': None,  # Search entire screen - simpler and more reliable
     'timeout': 3.0,  # Max seconds to search for element
     'grayscale': False,  # Use color matching for better accuracy
-    'like_button_images': ['like_button.png', 'like_button_dark.png'],  # Try light theme first, then dark
-    'comment_button_images': ['comment_button.png', 'comment_button_dark.png'],  # Try light theme first, then dark
+    'like_button_images': ['instagram/instagram_like_button.png', 'instagram/instagram_like_button_dark.png'],
+    'comment_button_images': ['instagram/instagram_comment_button.png', 'instagram/instagram_comment_button_dark.png'],
 }
 
 # Comment settings for Script B

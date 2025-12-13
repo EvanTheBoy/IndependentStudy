@@ -14,6 +14,31 @@ except ImportError:
     PYGETWINDOW_AVAILABLE = False
 
 
+def get_iphone_mirroring_region(window_title='iPhone Mirroring'):
+    """
+    Get the region (left, top, width, height) of the iPhone Mirroring window.
+
+    Args:
+        window_title: Title of the window to find (default: 'iPhone Mirroring')
+
+    Returns:
+        tuple: (left, top, width, height) or None if not found
+    """
+    if not PYGETWINDOW_AVAILABLE:
+        return None
+
+    try:
+        titles = gw.getAllTitles()
+        for title in titles:
+            if window_title in title:
+                geom = gw.getWindowGeometry(title)
+                left, top, width, height = geom
+                return (int(left), int(top), int(width), int(height))
+        return None
+    except Exception as e:
+        return None
+
+
 def get_iphone_mirroring_center(window_title='iPhone Mirroring'):
     """
     Get the center coordinates of the iPhone Mirroring window.

@@ -13,7 +13,7 @@ from utils import log_message, take_screenshot, setup_directories, get_iphone_mi
 
 
 # Reddit-specific reference images
-REDDIT_UPVOTE_BUTTON_IMAGES = ['reddit_upvote_button.png', 'reddit_upvote_button_dark.png']
+REDDIT_UPVOTE_BUTTON_IMAGES = ['reddit/reddit_upvote_button.png', 'reddit/reddit_upvote_button_dark.png']
 
 
 def find_reddit_upvote_buttons(confidence=0.7, grayscale=True):

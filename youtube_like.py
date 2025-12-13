@@ -9,11 +9,11 @@ import time
 import random
 from pathlib import Path
 import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center
+from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
 
 
 # YouTube-specific reference images
-YOUTUBE_LIKE_BUTTON_IMAGES = ['youtube_like_button.png', 'youtube_like_button_dark.png']
+YOUTUBE_LIKE_BUTTON_IMAGES = ['youtube/youtube_like_button.png', 'youtube/youtube_like_button_dark.png']
 
 
 def find_youtube_like_buttons(confidence=0.7, grayscale=True):
@@ -29,6 +29,11 @@ def find_youtube_like_buttons(confidence=0.7, grayscale=True):
     """
     like_buttons = []
 
+    # Limit search to iPhone Mirroring window
+    region = get_iphone_mirroring_region()
+    if region:
+        log_message(f"Searching within iPhone Mirroring window: {region}")
+
     for img_name in YOUTUBE_LIKE_BUTTON_IMAGES:
         img_path = Path('reference_images') / img_name
 
@@ -43,7 +48,8 @@ def find_youtube_like_buttons(confidence=0.7, grayscale=True):
             matches = list(pyautogui.locateAllOnScreen(
                 str(img_path),
                 confidence=confidence,
-                grayscale=grayscale
+                grayscale=grayscale,
+                region=region
             ))
 
             if matches:
@@ -109,18 +115,22 @@ def like_video_on_youtube():
 def scroll_youtube_feed():
     """
     Scroll down the YouTube feed to reveal new videos
+    For YouTube, scroll below center (video player is at top)
     """
     log_message("Scrolling YouTube feed...")
 
-    # Dynamically get iPhone Mirroring window center
-    feed_center = get_iphone_mirroring_center()
-    if feed_center:
-        pyautogui.moveTo(feed_center[0], feed_center[1])
-        log_message(f"Moved to feed center: {feed_center}")
+    # Get window region and scroll below center (avoid video player area)
+    region = get_iphone_mirroring_region()
+    if region:
+        left, top, width, height = region
+        scroll_x = left + width // 2
+        scroll_y = top + int(height * 0.75)  # 75% down from top (below video player)
+        pyautogui.moveTo(scroll_x, scroll_y)
+        log_message(f"Moved to scroll position: ({scroll_x}, {scroll_y})")
     else:
-        log_message("Could not find window center, scrolling at current position", level="WARNING")
+        log_message("Could not find window, scrolling at current position", level="WARNING")
 
-    scroll_amount = config.AUTOMATION.get('main_feed_scroll_amount', -400)
+    scroll_amount = config.AUTOMATION.get('main_feed_scroll_amount', -600)
     scroll_attempts = config.AUTOMATION.get('main_feed_scroll_attempts', 3)
 
     for _ in range(scroll_attempts):
@@ -134,22 +144,39 @@ def scroll_youtube_feed():
 def click_video_thumbnail():
     """
     Click on a video thumbnail to open the video player
-    Clicks at the current mouse position (where we just scrolled)
+    Clicks at the feed center position
 
     Returns:
-        bool: True if clicked, False otherwise
+        bool: True if successfully entered video, False otherwise
     """
     log_message("Clicking on video thumbnail to open video...")
 
-    # Click at current mouse position (where we just finished scrolling)
-    current_pos = pyautogui.position()
-    log_message(f"Clicking at current position: {current_pos}")
-    pyautogui.click()
+    # Click at feed center
+    region = get_iphone_mirroring_region()
+    if region:
+        left, top, width, height = region
+        click_x = left + width // 2
+        click_y = top + int(height * 0.5)  # Center of window
+        pyautogui.click(click_x, click_y)
+        log_message(f"Clicked at: ({click_x}, {click_y})")
+    else:
+        pyautogui.click()
 
-    # Wait for video to load (YouTube needs more time)
+    # Wait for video to load
     time.sleep(3)
 
-    return True
+    # Check if we successfully entered a video by looking for like button
+    like_buttons = find_youtube_like_buttons(
+        confidence=config.PIXEL_MATCHING['confidence'],
+        grayscale=config.PIXEL_MATCHING['grayscale']
+    )
+
+    if like_buttons:
+        log_message("Successfully entered video (like button found)", level="SUCCESS")
+        return True
+    else:
+        log_message("May not have entered video (no like button found)", level="WARNING")
+        return False
 
 
 def go_back_from_video():
@@ -159,12 +186,20 @@ def go_back_from_video():
     """
     log_message("Going back to feed...")
 
-    # Swipe from left edge to right to go back (iOS gesture)
-    # Get screen region from config or use defaults
-    start_x = 870  # Near left edge of iPhone Mirroring window
-    end_x = 1100   # Swipe to the right
-    y = 400        # Middle height
+    # Get iPhone Mirroring window region dynamically
+    region = get_iphone_mirroring_region()
+    if region:
+        left, top, width, height = region
+        start_x = left + 10  # Near left edge of window
+        end_x = left + width // 2  # Swipe to middle
+        y = top + height // 2  # Middle height
+    else:
+        # Fallback to defaults
+        start_x = 870
+        end_x = 1100
+        y = 400
 
+    log_message(f"Swiping from ({start_x}, {y}) to ({end_x}, {y})")
     pyautogui.moveTo(start_x, y)
     time.sleep(0.1)
     pyautogui.drag(end_x - start_x, 0, duration=0.3)
@@ -173,17 +208,17 @@ def go_back_from_video():
     log_message("Returned to feed")
 
 
-def run_youtube_cycle(run_number, total_runs):
+def run_youtube_cycle(run_number, total_runs, max_retries=3):
     """
     Execute one complete cycle on YouTube:
-    1. Scroll feed to find new video
-    2. Click video thumbnail to open
-    3. Like the video
-    4. Go back to feed
+    1. Click to enter video (retry if clicked between videos)
+    2. Like the video
+    3. Scroll down to next video
 
     Args:
         run_number: Current run number
         total_runs: Total number of runs
+        max_retries: Max retries if failed to enter video
 
     Returns:
         bool: True if successful, False otherwise
@@ -193,26 +228,35 @@ def run_youtube_cycle(run_number, total_runs):
         log_message(f"Run {run_number}/{total_runs}", level="INFO")
         log_message("=" * 50)
 
-        # 1. Scroll to reveal new videos
-        scroll_youtube_feed()
+        # 1. Try to enter a video (with retry if clicked between videos)
+        entered_video = False
+        for attempt in range(1, max_retries + 1):
+            entered_video = click_video_thumbnail()
+            if entered_video:
+                break
+            else:
+                log_message(f"Retry {attempt}/{max_retries}: Didn't enter video, scrolling and trying again...", level="WARNING")
+                scroll_youtube_feed()
 
-        # 2. Click on a video thumbnail to open it
-        click_video_thumbnail()
+        if not entered_video:
+            log_message("Failed to enter video after retries", level="ERROR")
+            scroll_youtube_feed()
+            return False
 
-        # 3. Find and like the video
+        # 2. Find and like the video
         success = like_video_on_youtube()
 
-        # 4. Take screenshot if enabled
+        # 3. Take screenshot if enabled
         if success and config.AUTOMATION['enable_screenshots']:
             take_screenshot(f"youtube_like_{run_number}")
 
-        # 5. Go back to feed
-        go_back_from_video()
+        # 4. Scroll down to next video
+        scroll_youtube_feed()
 
-        # 6. Wait before next cycle
+        # 5. Wait before next cycle
         time.sleep(config.TIMING['wait_between_runs'])
 
-        log_message(f"Run {run_number} completed", level="SUCCESS")
+        log_message(f"Run {run_number} completed {'successfully' if success else 'with issues'}", level="SUCCESS" if success else "WARNING")
         return success
 
     except Exception as e:
