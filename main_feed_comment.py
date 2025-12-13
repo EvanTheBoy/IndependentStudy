@@ -16,6 +16,7 @@ def find_comment_button(confidence=0.8, region=None, grayscale=False):
     Find the comment button using pixel matching
     
     Tries multiple reference images (light and dark theme)
+    Finds the topmost button to avoid clicking Kiro icons
     
     Args:
         confidence: Matching confidence threshold (0.0 to 1.0)
@@ -35,6 +36,7 @@ def find_comment_button(confidence=0.8, region=None, grayscale=False):
         log_message(f"Trying to find comment button using: {image_name}")
             
         try:
+            # Use locateOnScreen (finds first match, same as like button)
             location = pyautogui.locateOnScreen(
                 str(image_path),
                 confidence=confidence,
@@ -52,6 +54,11 @@ def find_comment_button(confidence=0.8, region=None, grayscale=False):
                 log_message(f"✓ Found comment button with {image_name} at region {location}", level="SUCCESS")
                 log_message(f"Will click at adjusted position: {click_point}")
                 return click_point
+            else:
+                log_message(f"  ✗ No match found with {image_name}", level="WARNING")
+                
+        except pyautogui.ImageNotFoundException:
+            log_message(f"  ✗ Image not found: {image_name}", level="WARNING")
         except Exception as e:
             log_message(f"Error searching for {image_name}: {e}", level="WARNING")
             
@@ -133,12 +140,18 @@ def comment_on_post_in_feed():
     pyautogui.click(button_location)
     time.sleep(config.TIMING['wait_after_comment_click'])
     
-    # 3. Find and click the comment input field
+    # 3. Find and click the comment input field (try both themes)
     log_message("Finding comment input field...")
-    input_img = Path('reference_images/comment_input.png')
+    input_images = ['comment_input.png', 'comment_input_dark.png']
+    input_found = False
     
-    if input_img.exists():
+    for img_name in input_images:
+        input_img = Path('reference_images') / img_name
+        if not input_img.exists():
+            continue
+            
         try:
+            log_message(f"Trying {img_name}...")
             input_location = pyautogui.locateOnScreen(
                 str(input_img),
                 confidence=0.7,
@@ -147,19 +160,16 @@ def comment_on_post_in_feed():
             
             if input_location:
                 input_center = pyautogui.center(input_location)
-                log_message(f"✓ Found input field at {input_center}")
+                log_message(f"✓ Found input field with {img_name} at {input_center}")
                 pyautogui.click(input_center)
                 time.sleep(0.5)
-            else:
-                log_message("Input field not found, trying Tab key", level="WARNING")
-                pyautogui.press('tab')
-                time.sleep(0.3)
+                input_found = True
+                break
         except Exception as e:
-            log_message(f"Error finding input field: {e}", level="WARNING")
-            pyautogui.press('tab')
-            time.sleep(0.3)
-    else:
-        log_message("comment_input.png not found, using Tab key", level="WARNING")
+            log_message(f"Error with {img_name}: {e}", level="WARNING")
+    
+    if not input_found:
+        log_message("Input field not found, trying Tab key", level="WARNING")
         pyautogui.press('tab')
         time.sleep(0.3)
     
@@ -168,13 +178,19 @@ def comment_on_post_in_feed():
     log_message(f"Typing comment: '{comment_text}'")
     pyautogui.write(comment_text, interval=0.05)
     
-    # 5. Find and click the submit button (arrow)
+    # 5. Find and click the submit button (arrow) - try both themes
     time.sleep(0.5)
     log_message("Finding submit button...")
-    submit_img = Path('reference_images/comment_submit.png')
+    submit_images = ['comment_submit.png', 'comment_submit_dark.png']
+    submit_found = False
     
-    if submit_img.exists():
+    for img_name in submit_images:
+        submit_img = Path('reference_images') / img_name
+        if not submit_img.exists():
+            continue
+            
         try:
+            log_message(f"Trying {img_name}...")
             submit_location = pyautogui.locateOnScreen(
                 str(submit_img),
                 confidence=0.7,
@@ -183,19 +199,16 @@ def comment_on_post_in_feed():
             
             if submit_location:
                 submit_center = pyautogui.center(submit_location)
-                log_message(f"✓ Found submit button at {submit_center}")
+                log_message(f"✓ Found submit button with {img_name} at {submit_center}")
                 pyautogui.click(submit_center)
                 time.sleep(config.TIMING['wait_after_comment_submit'])
-            else:
-                log_message("Submit button not found, trying Enter key", level="WARNING")
-                pyautogui.press('enter')
-                time.sleep(config.TIMING['wait_after_comment_submit'])
+                submit_found = True
+                break
         except Exception as e:
-            log_message(f"Error finding submit button: {e}", level="WARNING")
-            pyautogui.press('enter')
-            time.sleep(config.TIMING['wait_after_comment_submit'])
-    else:
-        log_message("comment_submit.png not found, using Enter key", level="WARNING")
+            log_message(f"Error with {img_name}: {e}", level="WARNING")
+    
+    if not submit_found:
+        log_message("Submit button not found, trying Enter key", level="WARNING")
         pyautogui.press('enter')
         time.sleep(config.TIMING['wait_after_comment_submit'])
     

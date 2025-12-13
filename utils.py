@@ -7,6 +7,46 @@ from pathlib import Path
 from datetime import datetime
 import config
 
+try:
+    import pygetwindow as gw
+    PYGETWINDOW_AVAILABLE = True
+except ImportError:
+    PYGETWINDOW_AVAILABLE = False
+
+
+def get_iphone_mirroring_center(window_title='iPhone Mirroring'):
+    """
+    Get the center coordinates of the iPhone Mirroring window.
+
+    Args:
+        window_title: Title of the window to find (default: 'iPhone Mirroring')
+
+    Returns:
+        tuple: (x, y) center coordinates, or fallback to config if not found
+    """
+    if not PYGETWINDOW_AVAILABLE:
+        log_message("pygetwindow not installed. Using config coordinates.", level="WARNING")
+        return config.COORDINATES.get('feed_center')
+
+    try:
+        # macOS: search through all window titles
+        titles = gw.getAllTitles()
+        for title in titles:
+            if window_title in title:
+                # getWindowGeometry returns (left, top, width, height)
+                geom = gw.getWindowGeometry(title)
+                left, top, width, height = geom
+                center_x = int(left + width / 2)
+                center_y = int(top + height / 2)
+                log_message(f"Found '{title}' window at center: ({center_x}, {center_y})")
+                return (center_x, center_y)
+
+        log_message(f"Window containing '{window_title}' not found", level="WARNING")
+        return config.COORDINATES.get('feed_center')
+    except Exception as e:
+        log_message(f"Error finding window: {e}", level="ERROR")
+        return config.COORDINATES.get('feed_center')
+
 
 def log_message(message, level="INFO"):
     """

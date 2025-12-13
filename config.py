@@ -66,6 +66,6 @@ AUTOMATION = {
     'enable_failsafe': True,  # Move mouse to corner to stop
     'scroll_amount': -500,  # Scroll amount per attempt (negative = down, adjust as needed)
     'scroll_attempts': 5,  # Number of scroll attempts
-    'main_feed_scroll_amount': -300,  # Smaller scroll for main feed
+    'main_feed_scroll_amount': -600,  # Scroll amount for main feed (negative = down)
     'main_feed_scroll_attempts': 3,  # Number of scroll attempts for main feed
 }
