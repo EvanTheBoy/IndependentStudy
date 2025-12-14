@@ -9,7 +9,7 @@ import time
 import random
 from pathlib import Path
 import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center
+from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
 
 
 # Reddit-specific reference images (in reddit subdirectory)
@@ -30,7 +30,7 @@ REDDIT_COMMENTS = [
 ]
 
 
-def find_buttons_on_screen(image_names, confidence=0.7, grayscale=False, find_all=False):
+def find_buttons_on_screen(image_names, confidence=0.7, grayscale=False, find_all=False, use_region=True):
     """
     Find button(s) on screen using pixel matching
 
@@ -39,11 +39,19 @@ def find_buttons_on_screen(image_names, confidence=0.7, grayscale=False, find_al
         confidence: Matching confidence threshold
         grayscale: Use grayscale matching
         find_all: If True, find all matches; if False, find first match
+        use_region: If True, limit search to iPhone Mirroring window
 
     Returns:
         list of (x, y) if find_all=True, or single (x, y) tuple, or None if not found
     """
     all_buttons = []
+
+    # Get search region to limit to iPhone Mirroring window
+    region = None
+    if use_region:
+        region = get_iphone_mirroring_region()
+        if region:
+            log_message(f"Searching within iPhone Mirroring window: {region}")
 
     for img_name in image_names:
         img_path = Path('reference_images') / img_name
@@ -59,7 +67,8 @@ def find_buttons_on_screen(image_names, confidence=0.7, grayscale=False, find_al
                 matches = list(pyautogui.locateAllOnScreen(
                     str(img_path),
                     confidence=confidence,
-                    grayscale=grayscale
+                    grayscale=grayscale,
+                    region=region
                 ))
                 if matches:
                     log_message(f"  Found {len(matches)} match(es)", level="SUCCESS")
@@ -70,7 +79,8 @@ def find_buttons_on_screen(image_names, confidence=0.7, grayscale=False, find_al
                 location = pyautogui.locateOnScreen(
                     str(img_path),
                     confidence=confidence,
-                    grayscale=grayscale
+                    grayscale=grayscale,
+                    region=region
                 )
                 if location:
                     center = pyautogui.center(location)
