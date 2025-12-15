@@ -13,20 +13,28 @@ from utils import log_message, take_screenshot, setup_directories, get_iphone_mi
 
 
 # Instagram-specific reference images (in instagram subdirectory)
+# Includes both dark and light theme variants for each element
 INSTAGRAM_IMAGES = {
     'comment_button': [
         'instagram/instagram_comment_button_dark.png',
         'instagram/instagram_comment_button.png',
     ],
     'input_field': [
+        # Dark theme variants
         'instagram/instagram_comment_input_field_dark_1.png',
         'instagram/instagram_comment_input_field_dark_2.png',
         'instagram/instagram_comment_input_field_dark_3.png',
+        # Light theme variants
+        'instagram/instagram_comment_input_field_1.png',
+        'instagram/instagram_comment_input_field_2.png',
+        'instagram/instagram_comment_input_field_3.png',
     ],
     'submit_button': [
         'instagram/instagram_comment_submit_dark.png',
+        'instagram/instagram_comment_submit.png',
     ],
     'drag_down': [
+        'instagram/instagram_drag_down_dark.png',
         'instagram/instagram_drag_down.png',
     ],
 }
@@ -128,9 +136,13 @@ def scroll_instagram_feed():
     time.sleep(config.TIMING['wait_after_scroll'])
 
 
-def click_comment_button():
+def click_comment_button(max_scroll_attempts=5):
     """
     Find and click the comment button on Instagram feed
+    If not found, scroll down slightly and retry until found
+
+    Args:
+        max_scroll_attempts: Maximum number of small scroll attempts
 
     Returns:
         bool: True if successful
@@ -144,8 +156,32 @@ def click_comment_button():
         use_region=True
     )
 
+    # If not found, try small scrolls to reveal the comment button
+    scroll_attempt = 0
+    while not location and scroll_attempt < max_scroll_attempts:
+        scroll_attempt += 1
+        log_message(f"Comment button not visible, scrolling down slightly (attempt {scroll_attempt}/{max_scroll_attempts})...")
+
+        # Get window center for scrolling
+        feed_center = get_iphone_mirroring_center()
+        if feed_center:
+            pyautogui.moveTo(feed_center[0], feed_center[1])
+
+        # Small scroll down (-150 to -250 pixels)
+        small_scroll = random.randint(-250, -150)
+        pyautogui.scroll(small_scroll)
+        time.sleep(0.5)
+
+        # Try to find the button again
+        location = find_button_on_screen(
+            INSTAGRAM_IMAGES['comment_button'],
+            confidence=config.PIXEL_MATCHING['confidence'],
+            grayscale=config.PIXEL_MATCHING['grayscale'],
+            use_region=True
+        )
+
     if not location:
-        log_message("Comment button not found", level="WARNING")
+        log_message(f"Comment button not found after {max_scroll_attempts} scroll attempts", level="WARNING")
         return False
 
     log_message(f"Clicking comment button at {location}")

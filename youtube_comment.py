@@ -13,20 +13,30 @@ from utils import log_message, take_screenshot, setup_directories, get_iphone_mi
 
 
 # YouTube-specific reference images
+# Includes both dark and light theme variants for each element
 YOUTUBE_IMAGES = {
     'comment_button': [
         'youtube/youtube_comment_button_dark.png',
+        'youtube/youtube_comment_button.png',
     ],
     'input_field': [
+        # Dark theme variants
         'youtube/youtube_comment_input_field_dark_1.png',
         'youtube/youtube_comment_input_field_dark_2.png',
         'youtube/youtube_comment_input_field_dark_3.png',
         'youtube/youtube_comment_input_field_dark_4.png',
+        # Light theme variants
+        'youtube/youtube_comment_input_field_1.png',
+        'youtube/youtube_comment_input_field_2.png',
+        'youtube/youtube_comment_input_field_3.png',
+        'youtube/youtube_comment_input_field_4.png',
     ],
     'submit_button': [
         'youtube/youtube_comment_submit_dark.png',
+        'youtube/youtube_comment_submit.png',
     ],
     'back_button': [
+        'youtube/youtube_comment_back_dark.png',
         'youtube/youtube_comment_back.png',
     ],
 }
@@ -91,7 +101,7 @@ def find_button_on_screen(image_names, confidence=0.7, grayscale=False, use_regi
     return None
 
 
-def find_all_buttons_on_screen(image_names, confidence=0.7, grayscale=False):
+def find_all_buttons_on_screen(image_names, confidence=0.7, grayscale=False, use_region=False):
     """
     Find all matching buttons on screen
 
@@ -99,10 +109,18 @@ def find_all_buttons_on_screen(image_names, confidence=0.7, grayscale=False):
         image_names: List of image filenames to try
         confidence: Matching confidence threshold
         grayscale: Use grayscale matching
+        use_region: If True, limit search to iPhone Mirroring window
 
     Returns:
         list: List of (x, y) coordinates
     """
+    # Get search region if requested
+    region = None
+    if use_region:
+        region = get_iphone_mirroring_region()
+        if region:
+            log_message(f"Searching within iPhone Mirroring window: {region}")
+
     all_buttons = []
 
     for img_name in image_names:
@@ -117,7 +135,8 @@ def find_all_buttons_on_screen(image_names, confidence=0.7, grayscale=False):
             matches = list(pyautogui.locateAllOnScreen(
                 str(img_path),
                 confidence=confidence,
-                grayscale=grayscale
+                grayscale=grayscale,
+                region=region
             ))
 
             if matches:
@@ -170,7 +189,8 @@ def click_comment_button():
     buttons = find_all_buttons_on_screen(
         YOUTUBE_IMAGES['comment_button'],
         confidence=config.PIXEL_MATCHING['confidence'],
-        grayscale=config.PIXEL_MATCHING['grayscale']
+        grayscale=config.PIXEL_MATCHING['grayscale'],
+        use_region=True
     )
 
     if not buttons:
@@ -178,7 +198,8 @@ def click_comment_button():
         location = find_button_on_screen(
             YOUTUBE_IMAGES['comment_button'],
             confidence=config.PIXEL_MATCHING['confidence'],
-            grayscale=config.PIXEL_MATCHING['grayscale']
+            grayscale=config.PIXEL_MATCHING['grayscale'],
+            use_region=True
         )
         if location:
             buttons = [location]
@@ -206,6 +227,11 @@ def click_input_field():
     """
     log_message("Looking for comment input field (trying multiple placeholders)...")
 
+    # Get iPhone Mirroring region
+    region = get_iphone_mirroring_region()
+    if region:
+        log_message(f"Searching within iPhone Mirroring window: {region}")
+
     # Try each placeholder image
     for img_name in YOUTUBE_IMAGES['input_field']:
         img_path = Path('reference_images') / img_name
@@ -219,7 +245,8 @@ def click_input_field():
             location = pyautogui.locateOnScreen(
                 str(img_path),
                 confidence=0.7,
-                grayscale=False
+                grayscale=False,
+                region=region
             )
 
             if location:
@@ -311,7 +338,8 @@ def close_comment_section():
     location = find_button_on_screen(
         YOUTUBE_IMAGES['back_button'],
         confidence=0.7,
-        grayscale=False
+        grayscale=False,
+        use_region=True
     )
 
     if location:
@@ -356,23 +384,70 @@ def scroll_youtube_feed():
     time.sleep(config.TIMING['wait_after_scroll'])
 
 
+def check_video_entered():
+    """
+    Check if we successfully entered a video by looking for comment button
+
+    Returns:
+        bool: True if comment button is found (video entered successfully)
+    """
+    region = get_iphone_mirroring_region()
+
+    for img_name in YOUTUBE_IMAGES['comment_button']:
+        img_path = Path('reference_images') / img_name
+        if not img_path.exists():
+            continue
+        try:
+            location = pyautogui.locateOnScreen(
+                str(img_path),
+                confidence=0.6,
+                region=region
+            )
+            if location:
+                return True
+        except:
+            pass
+    return False
+
+
 def click_video_and_wait():
     """
     Click on a video thumbnail and wait for it to load
+    Clicks at current mouse position (where scroll ended)
+    If click doesn't work (stuck between videos), scroll a bit and retry
+
+    Returns:
+        bool: True if successfully entered a video
     """
-    log_message("Clicking on video thumbnail...")
+    max_retries = 3
+    small_scroll_amount = -150  # Small scroll to adjust position
 
-    feed_center = get_iphone_mirroring_center()
-    if feed_center:
-        pyautogui.click(feed_center[0], feed_center[1])
-        log_message(f"Clicked at {feed_center}")
-    else:
-        log_message("Could not find window center", level="WARNING")
+    for attempt in range(max_retries):
+        log_message(f"Clicking on video thumbnail (attempt {attempt + 1}/{max_retries})...")
+
+        # Click at current mouse position
+        current_pos = pyautogui.position()
         pyautogui.click()
+        log_message(f"Clicked at current position: {current_pos}")
 
-    # Wait for YouTube to load the video
-    log_message("Waiting for video to load...")
-    time.sleep(3)  # YouTube needs time to load video
+        # Wait for YouTube to load the video
+        log_message("Waiting for video to load...")
+        time.sleep(2)
+
+        # Check if we successfully entered the video
+        if check_video_entered():
+            log_message("Successfully entered video (comment button found)", level="SUCCESS")
+            time.sleep(1)  # Extra wait for full load
+            return True
+
+        # If not entered, we might be between videos - scroll a bit and retry
+        if attempt < max_retries - 1:
+            log_message("Video not entered, might be between videos. Scrolling a bit...", level="WARNING")
+            pyautogui.scroll(small_scroll_amount)
+            time.sleep(0.5)
+
+    log_message("Failed to enter video after retries", level="WARNING")
+    return False
 
 
 def comment_on_youtube_video():
@@ -436,7 +511,8 @@ def run_youtube_comment_cycle(run_number, total_runs):
         scroll_youtube_feed()
 
         # 4. Click on new video and wait for it to load
-        click_video_and_wait()
+        if not click_video_and_wait():
+            log_message("Could not enter next video, will retry in next cycle", level="WARNING")
 
         # 5. Wait before next cycle
         time.sleep(config.TIMING['wait_between_runs'])
@@ -473,6 +549,12 @@ def main():
         time.sleep(1)
 
     log_message("Starting automation!\n")
+
+    # First, click to enter the first video (no scrolling, no cursor move - user positions cursor manually)
+    log_message("Clicking to enter first video at current cursor position...")
+    if not click_video_and_wait():
+        log_message("Could not enter first video, please position cursor on a video and restart", level="ERROR")
+        return
 
     successful_cycles = 0
     failed_cycles = 0
