@@ -8,8 +8,8 @@ import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_region
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_region
 
 # X-specific reference images (in reference_images/X/ folder)
 X_LIKE_BUTTON_IMAGES = ['X/x_like_button.png', 'X/x_like_button_dark.png']
@@ -59,7 +59,7 @@ def find_button(image_list, confidence=0.8, max_scroll_attempts=MAX_SCROLL_ATTEM
     for attempt in range(max_scroll_attempts + 1):
         # Try each image variant
         for img_name in image_list:
-            img_path = Path('reference_images') / img_name
+            img_path = Path('..') / img_name
 
             if not img_path.exists():
                 continue
@@ -189,7 +189,7 @@ def go_back():
             region = get_iphone_mirroring_region()
             still_visible = None
             for img_name in X_BACK_BUTTON_IMAGES:
-                img_path = Path('reference_images') / img_name
+                img_path = Path('..') / img_name
                 if img_path.exists():
                     try:
                         still_visible = pyautogui.locateOnScreen(

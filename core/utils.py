@@ -5,7 +5,7 @@ Shared utility functions for Instagram automation scripts
 import pyautogui
 from pathlib import Path
 from datetime import datetime
-import config
+from . import config
 
 try:
     import pygetwindow as gw

@@ -1,68 +1,56 @@
 #!/usr/bin/env python3
 """
-Instagram Like Automation
-Scrolls through Instagram feed and likes posts using pixel matching
+Reddit Upvote Automation
+Scrolls through Reddit and upvotes posts using pixel matching
 """
 
 import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center
 
 
-# Instagram-specific reference images (in instagram subdirectory)
-INSTAGRAM_LIKE_BUTTON_IMAGES = [
-    'instagram/instagram_like_button_dark.png',
-    'instagram/instagram_like_button.png',
-]
+# Reddit-specific reference images
+REDDIT_UPVOTE_BUTTON_IMAGES = ['reddit/reddit_upvote_button.png', 'reddit/reddit_upvote_button_dark.png']
 
 
-def find_instagram_like_buttons(confidence=0.7, grayscale=True):
+def find_reddit_upvote_buttons(confidence=0.7, grayscale=True):
     """
-    Find all Instagram like buttons on screen using pixel matching
-    Limited to iPhone Mirroring window region
+    Find all Reddit upvote buttons on screen using pixel matching
 
     Args:
         confidence: Matching confidence threshold (0.0 to 1.0)
         grayscale: Use grayscale matching for speed
 
     Returns:
-        list: List of (x, y) coordinates for all found like buttons
+        list: List of (x, y) coordinates for all found upvote buttons
     """
-    like_buttons = []
+    upvote_buttons = []
 
-    # Get iPhone Mirroring window region
-    region = get_iphone_mirroring_region()
-    if region:
-        log_message(f"Searching within iPhone Mirroring window: {region}")
-    else:
-        log_message("Could not find iPhone Mirroring window, searching full screen", level="WARNING")
-
-    for img_name in INSTAGRAM_LIKE_BUTTON_IMAGES:
-        img_path = Path('reference_images') / img_name
+    for img_name in REDDIT_UPVOTE_BUTTON_IMAGES:
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             log_message(f"Reference image not found: {img_path}", level="WARNING")
             continue
 
-        log_message(f"Searching for Instagram like buttons using: {img_name}")
+        log_message(f"Searching for Reddit upvote buttons using: {img_name}")
         log_message(f"  Confidence: {confidence}, Grayscale: {grayscale}")
 
         try:
             matches = list(pyautogui.locateAllOnScreen(
                 str(img_path),
                 confidence=confidence,
-                grayscale=grayscale,
-                region=region
+                grayscale=grayscale
             ))
 
             if matches:
                 log_message(f"  Found {len(matches)} match(es) with {img_name}", level="SUCCESS")
                 for match in matches:
                     center = pyautogui.center(match)
-                    like_buttons.append(center)
+                    upvote_buttons.append(center)
                     log_message(f"    Button at: {center}")
             else:
                 log_message(f"  No matches found with {img_name}", level="WARNING")
@@ -74,7 +62,7 @@ def find_instagram_like_buttons(confidence=0.7, grayscale=True):
 
     # Remove duplicates (buttons within 20 pixels)
     unique_buttons = []
-    for btn in like_buttons:
+    for btn in upvote_buttons:
         is_duplicate = False
         for existing in unique_buttons:
             if abs(btn[0] - existing[0]) < 20 and abs(btn[1] - existing[1]) < 20:
@@ -83,47 +71,46 @@ def find_instagram_like_buttons(confidence=0.7, grayscale=True):
         if not is_duplicate:
             unique_buttons.append(btn)
 
-    if len(unique_buttons) != len(like_buttons):
-        log_message(f"Removed {len(like_buttons) - len(unique_buttons)} duplicate(s)")
+    if len(unique_buttons) != len(upvote_buttons):
+        log_message(f"Removed {len(upvote_buttons) - len(unique_buttons)} duplicate(s)")
 
     return unique_buttons
 
 
-def like_post_on_instagram():
+def upvote_post_on_reddit():
     """
-    Find all like buttons on Instagram and click a random one
+    Find all upvote buttons on Reddit and click a random one
 
     Returns:
         bool: True if successful, False otherwise
     """
-    log_message("Looking for posts to like on Instagram...")
+    log_message("Looking for posts to upvote on Reddit...")
 
-    like_buttons = find_instagram_like_buttons(
+    upvote_buttons = find_reddit_upvote_buttons(
         confidence=config.PIXEL_MATCHING['confidence'],
         grayscale=config.PIXEL_MATCHING['grayscale']
     )
 
-    if not like_buttons:
-        log_message("No like buttons found on Instagram", level="WARNING")
+    if not upvote_buttons:
+        log_message("No upvote buttons found on Reddit", level="WARNING")
         return False
 
-    selected_button = random.choice(like_buttons)
-    log_message(f"Randomly selected button at {selected_button} (from {len(like_buttons)} found)")
+    selected_button = random.choice(upvote_buttons)
+    log_message(f"Randomly selected button at {selected_button} (from {len(upvote_buttons)} found)")
 
-    log_message(f"Clicking like button at {selected_button}")
+    log_message(f"Clicking upvote button at {selected_button}")
     pyautogui.click(selected_button)
     time.sleep(config.TIMING['wait_after_like'])
 
-    log_message("Post liked successfully", level="SUCCESS")
+    log_message("Post upvoted successfully", level="SUCCESS")
     return True
 
 
-def scroll_instagram_feed():
+def scroll_reddit_feed():
     """
-    Scroll down the Instagram feed to reveal new posts
-    Uses iPhone Mirroring window center as scroll position
+    Scroll down the Reddit feed to reveal new posts
     """
-    log_message("Scrolling Instagram feed...")
+    log_message("Scrolling Reddit feed...")
 
     # Dynamically get iPhone Mirroring window center
     feed_center = get_iphone_mirroring_center()
@@ -144,11 +131,11 @@ def scroll_instagram_feed():
     time.sleep(config.TIMING['wait_after_scroll'])
 
 
-def run_instagram_like_cycle(run_number, total_runs):
+def run_reddit_cycle(run_number, total_runs):
     """
-    Execute one complete cycle on Instagram:
-    1. Scroll to reveal new posts
-    2. Find and like a post
+    Execute one complete cycle on Reddit:
+    1. Try to upvote a post first
+    2. Then scroll to reveal new posts for next cycle
 
     Args:
         run_number: Current run number
@@ -162,15 +149,15 @@ def run_instagram_like_cycle(run_number, total_runs):
         log_message(f"Run {run_number}/{total_runs}", level="INFO")
         log_message("=" * 50)
 
-        # 1. Scroll to reveal new posts first
-        scroll_instagram_feed()
+        # 1. Find and upvote a post first
+        success = upvote_post_on_reddit()
 
-        # 2. Find and like a post
-        success = like_post_on_instagram()
-
-        # 3. Take screenshot if enabled
+        # 2. Take screenshot if enabled
         if success and config.AUTOMATION['enable_screenshots']:
-            take_screenshot(f"instagram_like_{run_number}")
+            take_screenshot(f"reddit_upvote_{run_number}")
+
+        # 3. Scroll to reveal new posts for next cycle
+        scroll_reddit_feed()
 
         # 4. Wait before next cycle
         time.sleep(config.TIMING['wait_between_runs'])
@@ -185,18 +172,18 @@ def run_instagram_like_cycle(run_number, total_runs):
 
 def main():
     """
-    Main function for Instagram Like automation
+    Main function for Reddit Upvote automation
     """
     setup_directories()
     pyautogui.FAILSAFE = config.AUTOMATION['enable_failsafe']
 
     log_message("=" * 50)
-    log_message("Instagram Like Automation", level="INFO")
+    log_message("Reddit Upvote Automation", level="INFO")
     log_message("=" * 50)
     log_message(f"Number of runs: {config.AUTOMATION['number_of_runs']}")
     log_message(f"Screenshots enabled: {config.AUTOMATION['enable_screenshots']}")
     log_message(f"Failsafe enabled: {config.AUTOMATION['enable_failsafe']}")
-    log_message(f"Reference images: {INSTAGRAM_LIKE_BUTTON_IMAGES}")
+    log_message(f"Reference images: {REDDIT_UPVOTE_BUTTON_IMAGES}")
 
     if config.AUTOMATION['enable_failsafe']:
         log_message("Move mouse to corner to stop automation", level="WARNING")
@@ -213,7 +200,7 @@ def main():
 
     try:
         for run_num in range(1, config.AUTOMATION['number_of_runs'] + 1):
-            success = run_instagram_like_cycle(run_num, config.AUTOMATION['number_of_runs'])
+            success = run_reddit_cycle(run_num, config.AUTOMATION['number_of_runs'])
             if success:
                 successful_cycles += 1
             else:

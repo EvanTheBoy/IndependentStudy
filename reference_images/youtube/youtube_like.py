@@ -8,8 +8,8 @@ import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
 
 
 # YouTube-specific reference images
@@ -35,7 +35,7 @@ def find_youtube_like_buttons(confidence=0.7, grayscale=True):
         log_message(f"Searching within iPhone Mirroring window: {region}")
 
     for img_name in YOUTUBE_LIKE_BUTTON_IMAGES:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             log_message(f"Reference image not found: {img_path}", level="WARNING")

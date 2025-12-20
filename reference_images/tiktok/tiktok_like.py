@@ -8,8 +8,8 @@ import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories
 
 
 def find_tiktok_like_buttons(confidence=0.7):
@@ -20,7 +20,7 @@ def find_tiktok_like_buttons(confidence=0.7):
         list: List of (x, y) coordinates for all found like buttons
     """
     like_buttons = []
-    ref_image = Path('reference_images/tiktok/tiktok_like_button.png')
+    ref_image = Path('tiktok_like_button.png')
     
     if not ref_image.exists():
         log_message(f"Reference image not found: {ref_image}", level="WARNING")

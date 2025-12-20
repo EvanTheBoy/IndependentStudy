@@ -17,8 +17,8 @@ import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
 
 
 # TikTok-specific reference images (for pixel matching)
@@ -115,7 +115,7 @@ def find_element_on_screen(image_names, confidence=0.7, grayscale=False, use_reg
             log_message(f"Searching within iPhone Mirroring window: {region}")
 
     for img_name in image_names:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             log_message(f"Reference image not found: {img_path}", level="WARNING")

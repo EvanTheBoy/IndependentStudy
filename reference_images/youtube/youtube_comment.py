@@ -8,8 +8,8 @@ import pyautogui
 import time
 import random
 from pathlib import Path
-import config
-from utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
+from core import config
+from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
 
 
 # YouTube-specific reference images
@@ -72,7 +72,7 @@ def find_button_on_screen(image_names, confidence=0.7, grayscale=False, use_regi
             log_message(f"Searching within iPhone Mirroring window: {region}")
 
     for img_name in image_names:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             log_message(f"Reference image not found: {img_path}", level="WARNING")
@@ -124,7 +124,7 @@ def find_all_buttons_on_screen(image_names, confidence=0.7, grayscale=False, use
     all_buttons = []
 
     for img_name in image_names:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             continue
@@ -234,7 +234,7 @@ def click_input_field():
 
     # Try each placeholder image
     for img_name in YOUTUBE_IMAGES['input_field']:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
 
         if not img_path.exists():
             continue
@@ -289,7 +289,7 @@ def type_and_submit_comment():
     all_matches = []
 
     for img_name in YOUTUBE_IMAGES['submit_button']:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
         if not img_path.exists():
             continue
         try:
@@ -394,7 +394,7 @@ def check_video_entered():
     region = get_iphone_mirroring_region()
 
     for img_name in YOUTUBE_IMAGES['comment_button']:
-        img_path = Path('reference_images') / img_name
+        img_path = Path('..') / img_name
         if not img_path.exists():
             continue
         try:
