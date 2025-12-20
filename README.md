@@ -562,6 +562,131 @@ The `core/utils.py` module provides shared utility functions:
 
 ---
 
+## Core Implementation
+
+This section shows the key code patterns used across all scripts.
+
+### 1. Window Detection
+
+Get the iPhone Mirroring window bounds to limit search region:
+
+```python
+import pygetwindow as gw
+
+def get_iphone_mirroring_region():
+    titles = gw.getAllTitles()
+    for title in titles:
+        if 'iPhone Mirroring' in title:
+            left, top, width, height = gw.getWindowGeometry(title)
+            return (int(left), int(top), int(width), int(height))
+    return None
+```
+
+### 2. Pixel Matching (Find Single Element)
+
+Find a UI element using reference images:
+
+```python
+import pyautogui
+from pathlib import Path
+
+def find_button(image_list, confidence=0.7, region=None):
+    for img_name in image_list:
+        img_path = Path('reference_images') / img_name
+        try:
+            location = pyautogui.locateOnScreen(
+                str(img_path),
+                confidence=confidence,
+                grayscale=True,
+                region=region  # Limit search to iPhone Mirroring window
+            )
+            if location:
+                return pyautogui.center(location)
+        except pyautogui.ImageNotFoundException:
+            pass
+    return None
+```
+
+### 3. Pixel Matching (Find All Elements)
+
+Find all matching elements and remove duplicates:
+
+```python
+def find_all_buttons(image_list, confidence=0.7, region=None):
+    all_buttons = []
+    for img_name in image_list:
+        img_path = Path('reference_images') / img_name
+        try:
+            matches = list(pyautogui.locateAllOnScreen(
+                str(img_path),
+                confidence=confidence,
+                region=region
+            ))
+            for match in matches:
+                all_buttons.append(pyautogui.center(match))
+        except pyautogui.ImageNotFoundException:
+            pass
+
+    # Remove duplicates (within 20px threshold)
+    unique = []
+    for btn in all_buttons:
+        is_dup = any(abs(btn[0]-u[0]) < 20 and abs(btn[1]-u[1]) < 20 for u in unique)
+        if not is_dup:
+            unique.append(btn)
+    return unique
+```
+
+### 4. Click, Type, and Scroll
+
+Basic interaction functions:
+
+```python
+# Click at position
+pyautogui.click(x, y)
+
+# Type text
+pyautogui.write('Hello!', interval=0.03)  # With delay between chars
+
+# Scroll (negative = down, positive = up)
+pyautogui.scroll(-500)
+
+# Press key
+pyautogui.press('enter')
+```
+
+### 5. Drag/Swipe Gestures
+
+For iOS-style gestures (e.g., closing comment sections):
+
+```python
+# Drag gesture (e.g., drag down to close)
+pyautogui.moveTo(start_x, start_y)
+pyautogui.drag(0, 300, duration=0.5)  # Drag down 300px
+
+# Swipe gesture (e.g., swipe right to go back)
+pyautogui.moveTo(start_x, y)
+pyautogui.drag(200, 0, duration=0.3)  # Swipe right 200px
+```
+
+### 6. Relative Coordinates
+
+For dynamic backgrounds where pixel matching fails (e.g., TikTok videos):
+
+```python
+def get_button_position(region, x_ratio, y_ratio):
+    left, top, width, height = region
+    x = int(left + width * x_ratio)
+    y = int(top + height * y_ratio)
+    return (x, y)
+
+# Example: TikTok comment button at 92% from left, 62% from top
+region = get_iphone_mirroring_region()
+comment_btn = get_button_position(region, 0.92, 0.62)
+pyautogui.click(comment_btn)
+```
+
+---
+
 ## Safety Features
 
 - **PyAutoGUI Failsafe**: Move your mouse to any corner of the screen to immediately stop script execution
@@ -599,6 +724,19 @@ The comment input field detection relies on reference images that capture placeh
 4. Crop the image to include only the placeholder text area
 5. Save it to the appropriate `reference_images/<platform>/` folder
 6. Add the new variant to the script's image search list if needed
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| All scripts suddenly stop working | Restart your Mac. This can resolve issues with PyAutoGUI's screen capture or window detection that accumulate over time. |
+| Script can't find buttons | Update reference images for the affected platform (see Maintenance section above) |
+| Some scripts stopped working after app update | Recapture the reference images for the affected buttons/input fields. App UI changes can break pixel matching. |
+| Scripts run but miss clicks | Adjust timing values in `config.py` (increase delays) |
+| "iPhone Mirroring window not found" | Make sure iPhone Mirroring is open, visible, and **on the main display** (the external monitor if you followed the Setup instructions) |
+| Scripts work erratically on Retina display | Connect an external monitor and set it as main display (see Setup section) |
 
 ---
 
