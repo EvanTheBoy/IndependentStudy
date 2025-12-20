@@ -76,9 +76,10 @@ Follow these steps to run any script:
    ```
 
 6. **During execution:**
+   - **Don't leave the script unattended** - these are not "set and forget" automations
+   - Ads may pop up on any platform and require manual dismissal
    - Don't move the mouse (the script controls it)
    - Don't switch windows or cover iPhone Mirroring
-   - Wait for the script to complete
 
 7. **To stop the script:**
    - Move mouse to any corner of the screen (PyAutoGUI failsafe), or
@@ -783,6 +784,7 @@ The comment input field detection relies on reference images that capture placeh
 
 ## Notes
 
+- **Don't leave scripts unattended** - ads may pop up on any platform and require manual dismissal; stay at your computer while running
 - Ensure your iPhone is properly mirrored to your Mac before running scripts
 - Scripts are designed for educational and research purposes
 - Reference images may need to be updated if app UIs change
