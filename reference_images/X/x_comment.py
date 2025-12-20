@@ -12,9 +12,9 @@ from core import config
 from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_region
 
 # X-specific reference images (in reference_images/X/ folder)
-X_INPUT_FIELD_IMAGES = ['X/x_comment_input_field.png']
-X_SUBMIT_BUTTON_IMAGES = ['X/x_comment_submit.png']
-X_BACK_BUTTON_IMAGES = ['X/x_back_button.png']
+X_INPUT_FIELD_IMAGES = ['X/x_comment_input_field.png', 'X/x_comment_input_field_dark.png']
+X_SUBMIT_BUTTON_IMAGES = ['X/x_comment_submit.png', 'X/x_comment_submit_dark.png']
+X_BACK_BUTTON_IMAGES = ['X/x_back_button.png', 'X/x_back_button_dark.png']
 
 # Time to wait for "reply sent" popup to disappear
 REPLY_SENT_POPUP_WAIT = 6

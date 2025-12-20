@@ -13,7 +13,7 @@ from core.utils import log_message, take_screenshot, setup_directories, get_ipho
 
 # X-specific reference images (in reference_images/X/ folder)
 X_LIKE_BUTTON_IMAGES = ['X/x_like_button.png', 'X/x_like_button_dark.png']
-X_BACK_BUTTON_IMAGES = ['X/x_back_button.png']
+X_BACK_BUTTON_IMAGES = ['X/x_back_button.png', 'X/x_back_button_dark.png']
 
 # Max scroll attempts when looking for buttons
 MAX_SCROLL_ATTEMPTS = 3

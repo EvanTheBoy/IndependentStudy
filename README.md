@@ -47,6 +47,45 @@ This project contains automation scripts for interacting with various social med
 
 ---
 
+## Quick Start
+
+Follow these steps to run any script:
+
+1. **Connect external monitor** and set it as the main display (required for Retina Macs)
+
+2. **Open iPhone Mirroring** on your Mac
+   - Make sure the window is on the main display (external monitor)
+   - Keep the window visible and unobstructed
+
+3. **Navigate to the app** on your mirrored iPhone
+   - For TikTok: go to the **Explore** tab
+   - For others: go to the main feed
+
+4. **Position cursor** (for some scripts)
+   - YouTube Comment: place cursor over a video thumbnail before running
+
+5. **Run the script** from the project root directory:
+   ```bash
+   python reference_images/<platform>/<script>.py
+   ```
+   Examples:
+   ```bash
+   python reference_images/youtube/youtube_like.py
+   python reference_images/instagram/instagram_comment.py
+   python reference_images/X/x_comment.py
+   ```
+
+6. **During execution:**
+   - Don't move the mouse (the script controls it)
+   - Don't switch windows or cover iPhone Mirroring
+   - Wait for the script to complete
+
+7. **To stop the script:**
+   - Move mouse to any corner of the screen (PyAutoGUI failsafe), or
+   - Press `Ctrl+C` in the terminal
+
+---
+
 ## Project Structure
 
 ```
@@ -346,6 +385,7 @@ python reference_images/X/x_like.py
 ```
 
 **Features:**
+- Supports both light and dark theme detection
 - Enter post -> Like -> Back -> Scroll pattern
 - Click position calculated as 15% from left, 55% from top
 - Configurable scroll direction (up/down)
@@ -385,6 +425,7 @@ python reference_images/X/x_comment.py
 ```
 
 **Features:**
+- Supports both light and dark theme detection
 - Complete workflow with popup wait handling
 - Waits 6 seconds for "reply sent" popup to disappear
 - Uses character-by-character typing for reliability
@@ -714,7 +755,7 @@ The comment input field detection relies on reference images that capture placeh
 | YouTube | `youtube_comment_input_field_1.png` through `_4.png` (light/dark variants) |
 | Instagram | `instagram_comment_input_field_1.png` through `_3.png` (light/dark variants) |
 | TikTok | `tiktok_comment_input_field.png`, `tiktok_video_direct_comment_input_field.png` |
-| X (Twitter) | `x_comment_input_field.png` |
+| X (Twitter) | `x_comment_input_field.png`, `x_comment_input_field_dark.png` |
 | Reddit | `reddit_comment_input_field.png` |
 
 **How to update:**
