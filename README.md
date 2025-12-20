@@ -33,14 +33,17 @@ This project contains automation scripts for interacting with various social med
 
 ## Setup
 
+> **Important (Mac Users):** If you are using a Mac with a Retina display, you must connect an external monitor and set it as the **main display**. PyAutoGUI's pixel matching does not work correctly with Retina/HiDPI displays, which will cause all scripts to fail. To set the external monitor as main: System Settings > Displays > Arrange > drag the menu bar to the external monitor.
+
 1. Clone or download this repository
 2. Install the required dependencies:
    ```bash
    pip install pyautogui pygetwindow
    ```
-3. Open iPhone Mirroring on your Mac
-4. Navigate to the desired social media app on your mirrored iPhone
-5. Run the desired script from the terminal
+3. Connect an external (non-Retina) monitor and set it as the main display
+4. Open iPhone Mirroring on your Mac (on the external monitor)
+5. Navigate to the desired social media app on your mirrored iPhone
+6. Run the desired script from the terminal
 
 ---
 
@@ -96,11 +99,23 @@ python reference_images/youtube/youtube_like.py
 - Implements swipe gesture to return from video to feed
 - Retry logic for failed video entries (max 3 retries)
 
-**Workflow:**
-1. Finds like button on screen
-2. Clicks the like button
-3. Scrolls to next video
-4. Repeats for configured number of runs
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Click at window center to enter video                    │
+│    ├─ If like button found → video entered successfully     │
+│    └─ If not found → scroll feed and retry (max 3 retries)  │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find like button using pixel matching                    │
+│    └─ Tries both light and dark theme reference images      │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Click like button                                        │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Scroll down to next video (75% down from top)            │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -119,13 +134,37 @@ python reference_images/youtube/youtube_comment.py
 - Dynamically finds and clicks the submit button
 - Includes comment section close logic with swipe fallback
 
-**Workflow:**
-1. Enters a video
-2. Opens comment section
-3. Finds and clicks input field
-4. Types a random comment from the configured list
-5. Submits the comment
-6. Closes comment section and returns to feed
+> **Pre-requisite:** Position your mouse cursor over a video thumbnail before running the script. The script will click at the current cursor position to enter the first video.
+
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ INITIAL: Click at current cursor position to enter video   │
+│    ├─ If comment button found → video entered successfully │
+│    └─ If not found → scroll slightly and retry (max 3x)    │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Find and click comment button                           │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find input field (tries 8 placeholder variants)         │
+│    └─ 4 dark theme + 4 light theme variants                │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Type random comment                                      │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Find and click submit button                            │
+│    ├─ Picks rightmost match (submit is on right side)      │
+│    └─ Fallback: press Enter key                            │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Close comment section                                    │
+│    ├─ Try: click X/back button                             │
+│    └─ Fallback: swipe down gesture                         │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Scroll feed to reveal next video                        │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Click to enter next video (with retry logic)            │
+├─────────────────────────────────────────────────────────────┤
+│ 8. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -146,11 +185,20 @@ python reference_images/instagram/instagram_like.py
 - Duplicate detection with 20-pixel threshold
 - Scroll-based feed navigation
 
-**Workflow:**
-1. Detects like button (heart icon) on screen
-2. Clicks to like the post
-3. Scrolls down to next post
-4. Repeats for configured number of runs
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Scroll feed to reveal new posts                         │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find all like buttons on screen                         │
+│    ├─ Search using both light and dark theme images        │
+│    └─ Remove duplicates (within 20px threshold)            │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Randomly select and click one like button               │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -169,16 +217,38 @@ python reference_images/instagram/instagram_comment.py
 - Multiple input field placeholder variants (6 total)
 - Fallback swipe gesture if drag fails
 
-**Workflow:**
-1. Finds and clicks comment button (scrolls if needed)
-2. Opens comment section
-3. Finds input field and types comment
-4. Submits comment
-5. Closes comment section using drag gesture
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Scroll feed to reveal posts                             │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find comment button                                      │
+│    ├─ If found → click it                                  │
+│    └─ If not found → scroll down slightly, retry (max 5x)  │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Find input field (tries 6 placeholder variants)         │
+│    └─ 3 dark theme + 3 light theme variants                │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Type random comment                                      │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Find and click submit button                            │
+│    └─ Fallback: press Enter key                            │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Close comment section                                    │
+│    ├─ Find drag bar in top 200px of window                 │
+│    ├─ Drag down 50% of window height (slow 1.5s drag)      │
+│    ├─ Fallback: swipe down from near top                   │
+│    └─ Click outside comment area to fully dismiss          │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ### TikTok
+
+> **Important:** Before running TikTok scripts, navigate to the **"Explore"** tab in the top navigation bar of the TikTok app.
 
 #### Like Script (`reference_images/tiktok/tiktok_like.py`)
 
@@ -194,11 +264,18 @@ python reference_images/tiktok/tiktok_like.py
 - Uses single reference image for detection
 - Larger scroll amounts for TikTok's full-screen video format
 
-**Workflow:**
-1. Detects like button (heart icon)
-2. Clicks to like the video
-3. Scrolls to next video
-4. Repeats for configured number of runs
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Scroll feed (larger scroll for full-screen videos)      │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find all like buttons using pixel matching              │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Randomly select and click one like button               │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -218,16 +295,42 @@ python reference_images/tiktok/tiktok_comment.py
 - Uses pixel matching for photo posts (static backgrounds)
 - Includes comment browsing function at end of run
 
-**Relative Button Positions:**
+**Relative Button Positions (for videos):**
 - Back button: 8% from left, 12.5% from top
 - Comment button: 92% from left, 62% from top
 
-**Workflow:**
-1. Enters a video/post from Explore page
-2. Opens comment section using relative coordinates or pixel matching
-3. Types and submits comment
-4. Returns to Explore page
-5. Scrolls to next content
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Click random content in Explore dual-column layout      │
+│    ├─ Randomly choose left (25% width) or right (75%)      │
+│    └─ Click at random Y position (25%-65% height)          │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Detect content type                                      │
+│    ├─ Try to find photo post input field (pixel matching)  │
+│    ├─ If found → this is a PHOTO POST                      │
+│    └─ If not found → assume this is a VIDEO                │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Find comment input field                                 │
+│    ├─ For VIDEO: use video_direct_comment_input_field.png  │
+│    └─ For PHOTO: use comment_input_field.png               │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Click input field and type comment                      │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Submit with Enter key (TikTok uses Enter, not button)   │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Go back to Explore                                       │
+│    ├─ For VIDEO: use relative coords (8% left, 12.5% top)  │
+│    ├─ For PHOTO: use pixel matching for back button        │
+│    └─ Fallback: swipe right from left edge (iOS gesture)   │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Scroll Explore feed                                      │
+├─────────────────────────────────────────────────────────────┤
+│ 8. Repeat from step 1                                       │
+├─────────────────────────────────────────────────────────────┤
+│ FINAL: Browse comments on one more post (scroll 3 seconds)  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -248,12 +351,27 @@ python reference_images/X/x_like.py
 - Configurable scroll direction (up/down)
 - Verification that back button disappears after exit
 
-**Workflow:**
-1. Enters a post by clicking
-2. Finds and clicks like button
-3. Returns to feed
-4. Scrolls to next post
-5. Repeats for configured number of runs
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Click to enter post (15% from left, 55% from top)       │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find like button                                         │
+│    ├─ If found → click it                                  │
+│    └─ If not found → scroll down, retry (max 3x)           │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Find back button                                         │
+│    ├─ If found → click it                                  │
+│    └─ If not found → scroll up, retry (max 3x)             │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Verify exit (check back button disappeared)              │
+│    └─ If still visible → click again (max 3 attempts)      │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Scroll feed to new posts (3x 600px scrolls)             │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -272,13 +390,33 @@ python reference_images/X/x_comment.py
 - Uses character-by-character typing for reliability
 - Color matching for submit button (distinguishes blue Reply from black Subscribe)
 
-**Workflow:**
-1. Enters a post
-2. Finds and clicks input field
-3. Types comment character by character
-4. Clicks submit button
-5. Waits for reply confirmation popup
-6. Returns to feed
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Click to enter post (15% from left, 55% from top)       │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find input field                                         │
+│    ├─ If found → click it                                  │
+│    └─ If not found → scroll down, retry (max 2x)           │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Type comment character by character (0.05s interval)    │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Find and click submit button                            │
+│    └─ Uses COLOR matching (not grayscale) to distinguish   │
+│       blue "Reply" button from black "Subscribe" button    │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Wait 6 seconds for "reply sent" popup to disappear      │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Find back button                                         │
+│    ├─ If found → click it                                  │
+│    └─ If not found → scroll up aggressively (3x 500px)     │
+│       then retry finding back button                        │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Scroll feed to new posts (3x 600px scrolls)             │
+├─────────────────────────────────────────────────────────────┤
+│ 8. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -298,11 +436,20 @@ python reference_images/reddit/reddit_like.py
 - Random selection from found upvote buttons
 - Feed-based navigation
 
-**Workflow:**
-1. Detects upvote button (arrow icon)
-2. Clicks to upvote
-3. Scrolls to next post
-4. Repeats for configured number of runs
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Find all upvote buttons on screen                       │
+│    ├─ Search using light and dark theme images             │
+│    └─ Remove duplicates (within 20px threshold)            │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Randomly select and click one upvote button             │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Scroll feed to reveal new posts                         │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -321,12 +468,30 @@ python reference_images/reddit/reddit_comment.py
 - Reply button detection with Enter key fallback
 - Swipe gesture fallback for closing
 
-**Workflow:**
-1. Enters a post
-2. Finds comment button and opens comment section
-3. Locates input field and types comment
-4. Submits using Reply button or Enter key
-5. Returns to feed
+**Detailed Workflow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Find all comment buttons on screen                      │
+│    └─ Randomly select one and click                        │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Find input field                                         │
+│    ├─ If found → click it                                  │
+│    └─ Fallback: tap at center of screen + 200px down       │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Type random comment                                      │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Find and click Reply button                             │
+│    └─ Fallback: press Enter key                            │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Close comment section                                    │
+│    ├─ Find and click back/X button                         │
+│    └─ Fallback: swipe right gesture from left edge         │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Scroll feed to reveal new posts                         │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Repeat from step 1                                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -403,6 +568,37 @@ The `core/utils.py` module provides shared utility functions:
 - **Retry Logic**: Failed actions are retried a limited number of times before moving on
 - **Logging**: All actions are logged with timestamps for debugging
 - **Screenshot Capture**: Optional screenshot capture for troubleshooting
+
+---
+
+## Maintenance
+
+### Comment Input Field Reference Images
+
+The comment input field detection relies on reference images that capture placeholder text (e.g., "Add a comment...", "Write a comment..."). These placeholders vary across platforms and may change when apps are updated.
+
+**Why updates are needed:**
+- Each platform uses different placeholder text variants
+- App updates may introduce new placeholder text or change existing ones
+- The scripts may fail to detect the input field if the reference images no longer match
+
+**Affected files by platform:**
+
+| Platform | Reference Images |
+|----------|-----------------|
+| YouTube | `youtube_comment_input_field_1.png` through `_4.png` (light/dark variants) |
+| Instagram | `instagram_comment_input_field_1.png` through `_3.png` (light/dark variants) |
+| TikTok | `tiktok_comment_input_field.png`, `tiktok_video_direct_comment_input_field.png` |
+| X (Twitter) | `x_comment_input_field.png` |
+| Reddit | `reddit_comment_input_field.png` |
+
+**How to update:**
+1. Open the app in iPhone Mirroring
+2. Navigate to a comment section
+3. Take a screenshot of the input field placeholder
+4. Crop the image to include only the placeholder text area
+5. Save it to the appropriate `reference_images/<platform>/` folder
+6. Add the new variant to the script's image search list if needed
 
 ---
 
