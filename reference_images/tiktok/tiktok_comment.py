@@ -16,6 +16,7 @@ Both use Enter key to submit comments (no submit button)
 import pyautogui
 import time
 import random
+from datetime import datetime
 from pathlib import Path
 from core import config
 from core.utils import log_message, take_screenshot, setup_directories, get_iphone_mirroring_center, get_iphone_mirroring_region
@@ -557,14 +558,23 @@ def main():
 
     successful_cycles = 0
     failed_cycles = 0
+    timing_records = []
 
     try:
         for run_num in range(1, config.AUTOMATION['number_of_runs'] + 1):
+            iter_start = datetime.now()
+            log_message(f"[TIMER] Run {run_num} started at {iter_start.strftime('%Y-%m-%d %H:%M:%S.%f')}")
+
             success = run_tiktok_comment_cycle(run_num, config.AUTOMATION['number_of_runs'])
             if success:
                 successful_cycles += 1
             else:
                 failed_cycles += 1
+
+            iter_end = datetime.now()
+            duration = (iter_end - iter_start).total_seconds()
+            log_message(f"[TIMER] Run {run_num} ended at  {iter_end.strftime('%Y-%m-%d %H:%M:%S.%f')} (took {duration:.2f}s)")
+            timing_records.append({'run': run_num, 'start': iter_start, 'end': iter_end, 'duration': duration})
 
         # After all comment cycles, browse comments on one more post before exiting
         log_message("\nAll comment cycles completed. Now browsing comments...")
@@ -592,6 +602,18 @@ def main():
         if successful_cycles + failed_cycles > 0:
             success_rate = (successful_cycles / (successful_cycles + failed_cycles)) * 100
             log_message(f"Success rate: {success_rate:.1f}%")
+
+        if timing_records:
+            log_message("\n" + "-" * 50)
+            log_message("TIMING RECORDS")
+            log_message("-" * 50)
+            for idx, rec in enumerate(timing_records, 1):
+                log_message(
+                    f"  [{idx}] Run {rec['run']}"
+                    f"\n        start    : {rec['start'].strftime('%Y-%m-%d %H:%M:%S.%f')}"
+                    f"\n        end      : {rec['end'].strftime('%Y-%m-%d %H:%M:%S.%f')}"
+                    f"\n        duration : {rec['duration']:.2f}s"
+                )
 
         log_message("=" * 50)
         log_message("Automation complete!", level="SUCCESS")
